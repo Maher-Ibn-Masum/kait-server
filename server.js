@@ -4,13 +4,14 @@ const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
 const PORT = Number(process.env.PORT) || 10000;
 const rooms = new Map();
+const MAX_PLAYERS = 20; // Host included; reconnects keep their existing seats.
 const server = http.createServer((req,res)=>{
   if(req.url==='/health'||req.url==='/'){
     res.writeHead(200,{'Content-Type':'text/plain; charset=utf-8'});
     res.end('Kait multiplayer server online');
   }else{res.writeHead(404);res.end('Not found')}
 });
-const wss = new WebSocketServer({server,path:'/ws',maxPayload:100000});
+const wss = new WebSocketServer({server,path:'/ws',maxPayload:2097152});
 const send=(ws,msg)=>{if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify(msg))};
 const err=(ws,code,message)=>send(ws,{type:'error',code,message});
 const leave=ws=>{
@@ -40,7 +41,12 @@ wss.on('connection',ws=>{
     if(!r.host)return err(ws,'room-busy','Host is reconnecting. Try again shortly.');
     if(!token||token.length>100)return err(ws,'invalid','Invalid player');
     const id='p-'+token,prior=r.clients.get(id);
-    if(!prior&&r.clients.size>=7)return err(ws,'room-full','Room is full (8 players maximum).');
+    // Count seats, not just active sockets: offline players retain their place.
+    const known=new Set((r.lastState?.players||[]).map(p=>p.id));
+    for(const connectedId of r.clients.keys())known.add(connectedId);
+    known.add('h'); // One seat is reserved for the host.
+    if(!known.has(id)&&known.size>=MAX_PLAYERS)
+      return err(ws,'room-full','This room is full (20/20 players).');
     leave(ws);
     if(prior&&prior!==ws){prior.room=null;prior.close(1000,'Rejoined on another connection')}
     ws.room=r;ws.role='client';ws.playerId=id;ws.playerToken=token;ws.startChips=Number(m.chips)||1000;
