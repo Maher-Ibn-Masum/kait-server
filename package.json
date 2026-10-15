@@ -1,13 +1,12 @@
 {
-  "name": "kait-signaling-server",
-  "version": "1.0.0",
+  "name": "kait-multiplayer-server",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "peer": "^1.0.2",
-    "express": "^4.21.2"
+    "ws": "^8.18.0"
   },
   "engines": {
     "node": ">=20"
