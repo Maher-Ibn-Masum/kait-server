@@ -1,0 +1,10 @@
+'use strict';
+const http = require('http');
+const express = require('express');
+const { ExpressPeerServer } = require('peer');
+const app = express();
+const server = http.createServer(app);
+app.get('/health', (_req, res) => res.status(200).send('Kait signaling online'));
+app.use('/peerjs', ExpressPeerServer(server, { path: '/', allow_discovery: false, proxied: true }));
+const port = Number(process.env.PORT) || 10000;
+server.listen(port, '0.0.0.0', () => console.log('Kait signaling listening on ' + port));
